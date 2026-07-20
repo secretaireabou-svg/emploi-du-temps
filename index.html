@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mon Emploi du Temps</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#4f6df5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Emploi du Temps">
+</head>
+<body>
+  <header class="topbar">
+    <h1>📅 Mon Emploi du Temps</h1>
+    <div class="topbar-actions">
+      <button id="btn-add" class="btn btn-primary">+ Ajouter un créneau</button>
+      <button id="btn-google" class="btn btn-google">Connecter Google Agenda</button>
+      <button id="btn-export" class="btn">Exporter</button>
+      <button id="btn-import" class="btn">Importer</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+      <button id="btn-clear" class="btn btn-danger">Tout effacer</button>
+    </div>
+  </header>
+  <div id="sync-status" class="sync-status hidden"></div>
+
+  <main>
+    <div class="grid-wrapper">
+      <div id="schedule-grid" class="schedule-grid"></div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modal-title">Nouveau créneau</h2>
+      <form id="event-form">
+        <input type="hidden" id="event-id">
+
+        <label>Titre
+          <input type="text" id="event-title" required placeholder="Ex : Réunion, Cours de sport...">
+        </label>
+
+        <label>Jour
+          <select id="event-day"></select>
+        </label>
+
+        <div class="time-row">
+          <label>Début
+            <input type="time" id="event-start" required>
+          </label>
+          <label>Fin
+            <input type="time" id="event-end" required>
+          </label>
+        </div>
+
+        <label>Lieu (optionnel)
+          <input type="text" id="event-location" placeholder="Ex : Salle 12, Visio...">
+        </label>
+
+        <label>Couleur
+          <div id="color-picker" class="color-picker"></div>
+        </label>
+
+        <p id="form-error" class="form-error hidden"></p>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-delete" class="btn btn-danger hidden">Supprimer</button>
+          <div class="modal-actions-right">
+            <button type="button" id="btn-cancel" class="btn">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
