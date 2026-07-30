@@ -112,6 +112,60 @@ main {
   padding: 20px;
 }
 
+.period-toolbar {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.period-modes,
+.period-navigation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.period-modes {
+  padding: 4px;
+  background: #e9ecf5;
+  border-radius: 10px;
+}
+
+.period-mode {
+  border: 0;
+  border-radius: 7px;
+  padding: 8px 11px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.period-mode.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 1px 4px rgba(31, 36, 48, 0.14);
+}
+
+#period-date {
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.period-title {
+  margin: 0;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
 .grid-wrapper {
   overflow-x: auto;
   background: var(--surface);
@@ -212,6 +266,50 @@ main {
   text-overflow: ellipsis;
 }
 
+.schedule-grid.agenda-view {
+  display: block;
+  min-width: 0;
+  padding: 12px;
+}
+
+.agenda-heading {
+  margin: 14px 4px 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.agenda-heading:first-child { margin-top: 2px; }
+
+.agenda-item {
+  display: grid;
+  grid-template-columns: 5px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  margin-bottom: 7px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.agenda-item.from-google {
+  background: #f8f9fa;
+  cursor: default;
+}
+
+.agenda-color {
+  align-self: stretch;
+  border-radius: 5px;
+}
+
+.agenda-item strong { display: block; font-size: 14px; }
+.agenda-item div div { margin-top: 3px; color: var(--text-muted); font-size: 12px; }
+.agenda-badge { color: #5f6368; font-size: 10px; font-weight: 700; }
+.agenda-empty { padding: 40px 16px; text-align: center; color: var(--text-muted); }
+
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -305,6 +403,12 @@ main {
   main { padding: 8px; }
   .sync-status { padding: 6px 16px; }
   .schedule-grid { grid-template-columns: 46px repeat(7, minmax(108px, 1fr)); }
+  .period-toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+  .period-modes { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .period-mode { padding: 9px 4px; }
+  .period-navigation { display: grid; grid-template-columns: auto 1fr auto auto; }
+  .period-navigation .btn { padding-left: 10px; padding-right: 10px; }
+  .period-title { text-align: left; padding: 2px 3px; font-size: 14px; }
   .modal { max-width: 100%; margin: 12px; max-height: 92vh; overflow-y: auto; }
 }
 

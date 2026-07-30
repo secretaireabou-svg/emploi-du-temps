@@ -19,6 +19,9 @@
   const btnDelete = document.getElementById("btn-delete");
   const btnGoogle = document.getElementById("btn-google");
   const syncStatus = document.getElementById("sync-status");
+  const periodDate = document.getElementById("period-date");
+  const periodTitle = document.getElementById("period-title");
+  const periodModes = [...document.querySelectorAll(".period-mode")];
 
   let events = loadEvents();
   let googleEvents = [];
@@ -26,6 +29,8 @@
   let tokenClient = null;
   let accessToken = null;
   let tokenExpiresAt = 0;
+  let activeView = localStorage.getItem("emploi-du-temps.view") || "week";
+  let activeDate = new Date();
 
   function loadEvents() {
     try {
@@ -49,20 +54,64 @@
     return h * 60 + m;
   }
 
-  function getMondayOfCurrentWeek() {
-    const now = new Date();
-    const day = now.getDay(); // 0 = Sunday
+  function dateKey(date) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
+  function getMonday(date = activeDate) {
+    const day = date.getDay(); // 0 = Sunday
     const diff = (day === 0 ? -6 : 1) - day;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diff);
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diff);
     monday.setHours(0, 0, 0, 0);
     return monday;
   }
 
+  function getMondayOfCurrentWeek() {
+    return getMonday(activeDate);
+  }
+
+  function formatPeriodTitle() {
+    const longDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" });
+    if (activeView === "day") return longDate.format(activeDate);
+    if (activeView === "week") {
+      const start = getMonday(activeDate);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return `${longDate.format(start)} — ${longDate.format(end)}`;
+    }
+    if (activeView === "month") {
+      return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(activeDate);
+    }
+    return String(activeDate.getFullYear());
+  }
+
+  function updatePeriodControls() {
+    periodDate.value = dateKey(activeDate);
+    periodTitle.textContent = formatPeriodTitle();
+    periodModes.forEach((button) =>
+      button.classList.toggle("active", button.dataset.view === activeView)
+    );
+  }
+
   function buildGrid() {
+    updatePeriodControls();
+    if (activeView === "month" || activeView === "year") {
+      buildAgendaList();
+      return;
+    }
+
     grid.innerHTML = "";
     const monday = getMondayOfCurrentWeek();
     const todayStr = new Date().toDateString();
+    const visibleDays = activeView === "day"
+      ? [((activeDate.getDay() + 6) % 7)]
+      : DAYS.map((_, index) => index);
+
+    grid.className = `schedule-grid view-${activeView}`;
+    grid.style.gridTemplateColumns = `64px repeat(${visibleDays.length}, minmax(130px, 1fr))`;
+    grid.style.minWidth = activeView === "day" ? "360px" : "960px";
 
     // Top-left empty header cell
     const corner = document.createElement("div");
@@ -70,7 +119,8 @@
     grid.appendChild(corner);
 
     // Day headers
-    DAYS.forEach((day, i) => {
+    visibleDays.forEach((i) => {
+      const day = DAYS[i];
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       const header = document.createElement("div");
@@ -92,7 +142,7 @@
 
     // Day columns
     const totalHours = END_HOUR - START_HOUR;
-    DAYS.forEach((_, dayIndex) => {
+    visibleDays.forEach((dayIndex) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + dayIndex);
       const col = document.createElement("div");
@@ -109,6 +159,90 @@
 
       grid.appendChild(col);
       renderEventsForDay(col, dayIndex);
+    });
+  }
+
+  function periodBounds() {
+    let start;
+    let end;
+    if (activeView === "day") {
+      start = new Date(activeDate);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(start.getDate() + 1);
+    } else if (activeView === "month") {
+      start = new Date(activeDate.getFullYear(), activeDate.getMonth(), 1);
+      end = new Date(activeDate.getFullYear(), activeDate.getMonth() + 1, 1);
+    } else if (activeView === "year") {
+      start = new Date(activeDate.getFullYear(), 0, 1);
+      end = new Date(activeDate.getFullYear() + 1, 0, 1);
+    } else {
+      start = getMonday(activeDate);
+      end = new Date(start);
+      end.setDate(start.getDate() + 7);
+    }
+    return { start, end };
+  }
+
+  function localOccurrences(start, end) {
+    const occurrences = [];
+    const cursor = new Date(start);
+    cursor.setHours(0, 0, 0, 0);
+    while (cursor < end) {
+      const dayIndex = (cursor.getDay() + 6) % 7;
+      events.filter((event) => event.day === dayIndex).forEach((event) => {
+        occurrences.push({ ...event, date: dateKey(cursor), source: "local" });
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return occurrences;
+  }
+
+  function buildAgendaList() {
+    const { start, end } = periodBounds();
+    const combined = [
+      ...localOccurrences(start, end),
+      ...googleEvents
+        .filter((event) => event.date >= dateKey(start) && event.date < dateKey(end))
+        .map((event) => ({ ...event, source: "google" })),
+    ].sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`));
+
+    grid.className = "schedule-grid agenda-view";
+    grid.style.gridTemplateColumns = "";
+    grid.style.minWidth = "";
+    grid.innerHTML = "";
+
+    if (combined.length === 0) {
+      grid.innerHTML = '<div class="agenda-empty">Aucun créneau pour cette période.</div>';
+      return;
+    }
+
+    let currentGroup = "";
+    combined.forEach((event) => {
+      const group = activeView === "year" ? event.date.slice(0, 7) : event.date;
+      if (group !== currentGroup) {
+        currentGroup = group;
+        const heading = document.createElement("h3");
+        heading.className = "agenda-heading";
+        const groupDate = new Date(`${group}${activeView === "year" ? "-01" : ""}T12:00:00`);
+        heading.textContent = activeView === "year"
+          ? new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(groupDate)
+          : new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(groupDate);
+        grid.appendChild(heading);
+      }
+
+      const item = document.createElement("article");
+      item.className = `agenda-item${event.source === "google" ? " from-google" : ""}`;
+      item.innerHTML = `
+        <span class="agenda-color" style="background:${event.source === "google" ? "#5f6368" : (event.color || COLORS[0])}"></span>
+        <div>
+          <strong>${escapeHtml(event.title)}</strong>
+          <div>${event.start} – ${event.end}${event.location ? ` · ${escapeHtml(event.location)}` : ""}</div>
+        </div>
+        ${event.source === "google" ? '<span class="agenda-badge">GOOGLE</span>' : ""}
+      `;
+      if (event.source === "local") item.addEventListener("click", () => openModalForEdit(event));
+      grid.appendChild(item);
     });
   }
 
@@ -277,8 +411,45 @@
   });
 
   document.getElementById("btn-add").addEventListener("click", () => {
-    openModalForNew(0, START_HOUR);
+    openModalForNew((activeDate.getDay() + 6) % 7, START_HOUR);
   });
+
+  periodModes.forEach((button) => {
+    button.addEventListener("click", () => {
+      activeView = button.dataset.view;
+      localStorage.setItem("emploi-du-temps.view", activeView);
+      refreshPeriod();
+    });
+  });
+
+  periodDate.addEventListener("change", () => {
+    if (!periodDate.value) return;
+    activeDate = new Date(`${periodDate.value}T12:00:00`);
+    refreshPeriod();
+  });
+
+  document.getElementById("btn-period-today").addEventListener("click", () => {
+    activeDate = new Date();
+    refreshPeriod();
+  });
+
+  document.getElementById("btn-period-prev").addEventListener("click", () => movePeriod(-1));
+  document.getElementById("btn-period-next").addEventListener("click", () => movePeriod(1));
+
+  function movePeriod(direction) {
+    const next = new Date(activeDate);
+    if (activeView === "day") next.setDate(next.getDate() + direction);
+    if (activeView === "week") next.setDate(next.getDate() + 7 * direction);
+    if (activeView === "month") next.setMonth(next.getMonth() + direction);
+    if (activeView === "year") next.setFullYear(next.getFullYear() + direction);
+    activeDate = next;
+    refreshPeriod();
+  }
+
+  function refreshPeriod() {
+    buildGrid();
+    if (isConnected()) pullGoogleEvents();
+  }
 
   document.getElementById("btn-clear").addEventListener("click", () => {
     if (events.length === 0) return;
@@ -507,17 +678,15 @@
 
   async function pullGoogleEvents() {
     if (!isConnected()) return;
-    const monday = getMondayOfCurrentWeek();
-    const nextMonday = new Date(monday);
-    nextMonday.setDate(monday.getDate() + 7);
+    const { start: periodStart, end: periodEnd } = periodBounds();
 
     try {
       const params = new URLSearchParams({
-        timeMin: monday.toISOString(),
-        timeMax: nextMonday.toISOString(),
+        timeMin: periodStart.toISOString(),
+        timeMax: periodEnd.toISOString(),
         singleEvents: "true",
         orderBy: "startTime",
-        maxResults: "250",
+        maxResults: "2500",
       });
       const data = await googleFetch(`calendars/primary/events?${params.toString()}`);
       if (!data) return;
@@ -534,13 +703,14 @@
             id: item.id,
             title: item.summary || "(Sans titre)",
             day: dayIndex,
+            date: dateKey(start),
             start: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
             end: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
             location: item.location || "",
           };
         });
 
-      showSyncStatus(`Connecté à Google Agenda — ${googleEvents.length} événement(s) importé(s) cette semaine.`, false);
+      showSyncStatus(`Google Agenda connecté — ${googleEvents.length} événement(s) pour la période.`, false);
       buildGrid();
     } catch (err) {
       showSyncStatus(err.message, true);

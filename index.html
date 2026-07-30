@@ -29,6 +29,21 @@
   <div id="sync-status" class="sync-status hidden"></div>
 
   <main>
+    <section class="period-toolbar" aria-label="Choisir la période affichée">
+      <div class="period-modes" role="group" aria-label="Mode d'affichage">
+        <button type="button" class="period-mode" data-view="day">Jour</button>
+        <button type="button" class="period-mode active" data-view="week">Semaine</button>
+        <button type="button" class="period-mode" data-view="month">Mois</button>
+        <button type="button" class="period-mode" data-view="year">Année</button>
+      </div>
+      <div class="period-navigation">
+        <button type="button" id="btn-period-prev" class="btn" aria-label="Période précédente">‹</button>
+        <input type="date" id="period-date" aria-label="Date à rechercher">
+        <button type="button" id="btn-period-today" class="btn">Aujourd'hui</button>
+        <button type="button" id="btn-period-next" class="btn" aria-label="Période suivante">›</button>
+      </div>
+      <h2 id="period-title" class="period-title"></h2>
+    </section>
     <div class="grid-wrapper">
       <div id="schedule-grid" class="schedule-grid"></div>
     </div>
