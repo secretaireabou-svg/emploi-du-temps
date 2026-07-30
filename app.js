@@ -515,7 +515,7 @@
 
   function restoreSession() {
     try {
-      const raw = sessionStorage.getItem(TOKEN_KEY);
+      const raw = localStorage.getItem(TOKEN_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved.expiresAt > Date.now()) {
@@ -529,7 +529,7 @@
     } catch {
       /* ignore corrupt session data */
     }
-    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
     if (localStorage.getItem(REMEMBER_GOOGLE_KEY) === "true") {
       attemptAutomaticReconnect();
     }
@@ -562,7 +562,7 @@
         silentReconnect = false;
         accessToken = response.access_token;
         tokenExpiresAt = Date.now() + response.expires_in * 1000;
-        sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ accessToken, expiresAt: tokenExpiresAt }));
+        localStorage.setItem(TOKEN_KEY, JSON.stringify({ accessToken, expiresAt: tokenExpiresAt }));
         localStorage.setItem(REMEMBER_GOOGLE_KEY, "true");
         setConnectedUI(true);
         pullGoogleEvents();
@@ -603,7 +603,7 @@
         }
         accessToken = null;
         tokenExpiresAt = 0;
-        sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(REMEMBER_GOOGLE_KEY);
         googleEvents = [];
         setConnectedUI(false);
@@ -664,7 +664,7 @@
     if (res.status === 401) {
       accessToken = null;
       tokenExpiresAt = 0;
-      sessionStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
       setConnectedUI(false);
       showSyncStatus("Session Google Agenda expirée, reconnecte-toi.", true);
       return null;
