@@ -1,8 +1,9 @@
-const CACHE_NAME = "emploi-du-temps-v1";
+const CACHE_NAME = "emploi-du-temps-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
+  "./config.js",
   "./app.js",
   "./manifest.json",
   "./icons/icon-192.png",
