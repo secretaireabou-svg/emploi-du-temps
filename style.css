@@ -86,6 +86,31 @@ body {
   color: #1e7e34;
 }
 
+.more-menu {
+  position: relative;
+}
+
+.more-menu summary {
+  list-style: none;
+  user-select: none;
+}
+
+.more-menu summary::-webkit-details-marker { display: none; }
+
+.more-menu-content {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 170px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(31, 36, 48, 0.16);
+}
+
+.more-menu-content .btn { width: 100%; }
 .sync-status {
   padding: 6px 24px;
   font-size: 12px;

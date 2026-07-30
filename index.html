@@ -23,7 +23,12 @@
       <button id="btn-export" class="btn">Exporter</button>
       <button id="btn-import" class="btn">Importer</button>
       <input type="file" id="import-file" accept="application/json" hidden>
-      <button id="btn-clear" class="btn btn-danger">Tout effacer</button>
+      <details class="more-menu">
+        <summary class="btn">Plus</summary>
+        <div class="more-menu-content">
+          <button id="btn-clear" class="btn btn-danger">Tout effacer</button>
+        </div>
+      </details>
     </div>
   </header>
   <div id="sync-status" class="sync-status hidden"></div>

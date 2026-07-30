@@ -1,6 +1,7 @@
 (() => {
   const STORAGE_KEY = "emploi-du-temps.events";
   const TOKEN_KEY = "emploi-du-temps.gtoken";
+  const REMEMBER_GOOGLE_KEY = "emploi-du-temps.remember-google";
   const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
   const APP_TAG = "emploi-du-temps";
 
@@ -29,6 +30,7 @@
   let tokenClient = null;
   let accessToken = null;
   let tokenExpiresAt = 0;
+  let silentReconnect = false;
   let activeView = localStorage.getItem("emploi-du-temps.view") || "week";
   let activeDate = new Date();
 
@@ -514,16 +516,22 @@
   function restoreSession() {
     try {
       const raw = sessionStorage.getItem(TOKEN_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      if (saved.expiresAt > Date.now()) {
-        accessToken = saved.accessToken;
-        tokenExpiresAt = saved.expiresAt;
-        setConnectedUI(true);
-        pullGoogleEvents();
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.expiresAt > Date.now()) {
+          accessToken = saved.accessToken;
+          tokenExpiresAt = saved.expiresAt;
+          setConnectedUI(true);
+          pullGoogleEvents();
+          return;
+        }
       }
     } catch {
       /* ignore corrupt session data */
+    }
+    sessionStorage.removeItem(TOKEN_KEY);
+    if (localStorage.getItem(REMEMBER_GOOGLE_KEY) === "true") {
+      attemptAutomaticReconnect();
     }
   }
 
@@ -542,12 +550,20 @@
       scope: CALENDAR_SCOPE,
       callback: (response) => {
         if (response.error) {
+          if (silentReconnect) {
+            silentReconnect = false;
+            hideSyncStatus();
+            setConnectedUI(false);
+            return;
+          }
           showSyncStatus("Connexion Google Agenda refusée ou annulée.", true);
           return;
         }
+        silentReconnect = false;
         accessToken = response.access_token;
         tokenExpiresAt = Date.now() + response.expires_in * 1000;
         sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ accessToken, expiresAt: tokenExpiresAt }));
+        localStorage.setItem(REMEMBER_GOOGLE_KEY, "true");
         setConnectedUI(true);
         pullGoogleEvents();
       },
@@ -555,6 +571,23 @@
     return tokenClient;
   }
 
+  function attemptAutomaticReconnect(attempt = 0) {
+    if (!isGoogleConfigured() || isConnected()) return;
+    if (typeof google === "undefined" || !google.accounts) {
+      if (attempt < 20) {
+        window.setTimeout(() => attemptAutomaticReconnect(attempt + 1), 250);
+      }
+      return;
+    }
+    try {
+      silentReconnect = true;
+      showSyncStatus("Reconnexion automatique à Google Agenda…", false);
+      ensureTokenClient().requestAccessToken({ prompt: "" });
+    } catch {
+      silentReconnect = false;
+      hideSyncStatus();
+    }
+  }
   btnGoogle.addEventListener("click", () => {
     if (!isGoogleConfigured()) {
       alert(
@@ -571,6 +604,7 @@
         accessToken = null;
         tokenExpiresAt = 0;
         sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REMEMBER_GOOGLE_KEY);
         googleEvents = [];
         setConnectedUI(false);
         hideSyncStatus();
